@@ -18,62 +18,73 @@ package flow;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static flow.Preconditions.checkNotNull;
 
+/**
+ *  offer a key and self
+ */
 public class Services {
-  static final Services ROOT_SERVICES =
-      new Services(Flow.ROOT_KEY, null, Collections.<String, Object>emptyMap());
+    static final Services ROOT_SERVICES =
+            new Services(Flow.ROOT_KEY, null, Collections.<String, Object>emptyMap());
 
-  public static final class Binder extends Services {
-    private final Map<String, Object> services = new LinkedHashMap<>();
-    private final Services base;
+    // Binder: new Binder(base,key).bind(serviceName,service).bulid(), convenience to create services
+    public static final class Binder extends Services {
+        private final Map<String, Object> services = new LinkedHashMap<>();
+        private final Services base;
 
-    private Binder(Services base, Object key) {
-      super(key, base, Collections.<String, Object>emptyMap());
-      checkNotNull(base, "only root Services should have a null base");
-      this.base = base;
+        private Binder(Services base, Object key) {
+            super(key, base, Collections.<String, Object>emptyMap());
+            checkNotNull(base, "only root Services should have a null base");
+            this.base = base;
+        }
+
+        @NonNull
+        public Binder bind(@NonNull String serviceName, @NonNull Object service) {
+            services.put(serviceName, service);
+            return this;
+        }
+
+        @NonNull
+        Services build() {
+            return new Services(getKey(), base, services);
+        }
     }
 
-    @NonNull public Binder bind(@NonNull String serviceName, @NonNull Object service) {
-      services.put(serviceName, service);
-      return this;
+    private final Object key;
+    @Nullable
+    private final Services delegate;
+    private final Map<String, Object> localServices = new LinkedHashMap<>();
+
+    private Services(Object key, @Nullable Services delegate, Map<String, Object> localServices) {
+        this.delegate = delegate;
+        this.key = key;
+        this.localServices.putAll(localServices);
     }
 
-    @NonNull Services build() {
-      return new Services(getKey(), base, services);
+    @Nullable
+    public <T> T getService(@NonNull String name) {
+        if (localServices.containsKey(name)) {
+            @SuppressWarnings("unchecked") //
+            final T service = (T) localServices.get(name);
+            return service;
+        }
+        if (delegate != null) return delegate.getService(name);
+        return null;
     }
-  }
 
-  private final Object key;
-  @Nullable private final Services delegate;
-  private final Map<String, Object> localServices = new LinkedHashMap<>();
-
-  private Services(Object key, @Nullable Services delegate, Map<String, Object> localServices) {
-    this.delegate = delegate;
-    this.key = key;
-    this.localServices.putAll(localServices);
-  }
-
-  @Nullable public <T> T getService(@NonNull String name) {
-    if (localServices.containsKey(name)) {
-      @SuppressWarnings("unchecked") //
-      final T service = (T) localServices.get(name);
-      return service;
+    @NonNull
+    public <T> T getKey() {
+        //noinspection unchecked
+        return (T) this.key;
     }
-    if (delegate != null) return delegate.getService(name);
-    return null;
-  }
 
-  @NonNull public <T> T getKey() {
-    //noinspection unchecked
-    return (T) this.key;
-  }
-
-  @NonNull Binder extend(@NonNull Object key) {
-    return new Binder(this, key);
-  }
+    @NonNull
+    Binder extend(@NonNull Object key) {
+        return new Binder(this, key);
+    }
 }

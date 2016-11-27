@@ -18,6 +18,7 @@ package flow;
 
 /**
  * Convenience base class for keys. All instances of a given subclass are equal.
+ * keep Key's equals() and hashCode() invariant.
  */
 public abstract class ClassKey {
 

@@ -21,65 +21,75 @@ import android.app.Application;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ *  inject into app helper,set default values
+ */
 public final class Installer {
 
-  private final Context baseContext;
-  private final Activity activity;
-  private final List<ServicesFactory> contextFactories = new ArrayList<>();
-  private KeyParceler parceler;
-  private Object defaultKey;
-  private Dispatcher dispatcher;
+    private final Context baseContext;
+    private final Activity activity;
+    private final List<ServicesFactory> contextFactories = new ArrayList<>();
+    private KeyParceler parceler;
+    private Object defaultKey;
+    private Dispatcher dispatcher;
 
-  Installer(Context baseContext, Activity activity) {
-    this.baseContext = baseContext;
-    this.activity = activity;
-  }
-
-  @NonNull public Installer keyParceler(@Nullable KeyParceler parceler) {
-    this.parceler = parceler;
-    return this;
-  }
-
-  @NonNull public Installer dispatcher(@Nullable Dispatcher dispatcher) {
-    this.dispatcher = dispatcher;
-    return this;
-  }
-
-  @NonNull public Installer defaultKey(@Nullable Object defaultKey) {
-    this.defaultKey = defaultKey;
-    return this;
-  }
-
-  /**
-   * Applies a factory when creating a Context associated with a given key.
-   *
-   * May be called multiple times. Factories are called in the order given during setup, and
-   * in reverse order during teardown.
-   */
-  @NonNull public Installer addServicesFactory(@NonNull ServicesFactory factory) {
-    contextFactories.add(factory);
-    return this;
-  }
-
-  @NonNull public Context install() {
-    if (InternalLifecycleIntegration.find(activity) != null) {
-      throw new IllegalStateException("Flow is already installed in this Activity.");
+    Installer(Context baseContext, Activity activity) {
+        this.baseContext = baseContext;
+        this.activity = activity;
     }
-    Dispatcher dispatcher = this.dispatcher;
-    if (dispatcher == null) {
-      dispatcher = KeyDispatcher.configure(activity, new DefaultKeyChanger(activity)) //
-          .build();
-    }
-    final Object defState = defaultKey == null ? "Hello, World!" : defaultKey;
 
-    final History defaultHistory = History.single(defState);
-    final Application app = (Application) baseContext.getApplicationContext();
-    final KeyManager keyManager = new KeyManager(contextFactories);
-    InternalLifecycleIntegration.install(app, activity, parceler, defaultHistory, dispatcher,
-        keyManager);
-    return new InternalContextWrapper(baseContext, activity);
-  }
+    @NonNull
+    public Installer keyParceler(@Nullable KeyParceler parceler) {
+        this.parceler = parceler;
+        return this;
+    }
+
+    @NonNull
+    public Installer dispatcher(@Nullable Dispatcher dispatcher) {
+        this.dispatcher = dispatcher;
+        return this;
+    }
+
+    @NonNull
+    public Installer defaultKey(@Nullable Object defaultKey) {
+        this.defaultKey = defaultKey;
+        return this;
+    }
+
+    /**
+     * Applies a factory when creating a Context associated with a given key.
+     * <p>
+     * May be called multiple times. Factories are called in the order given during setup, and
+     * in reverse order during teardown.
+     */
+    @NonNull
+    public Installer addServicesFactory(@NonNull ServicesFactory factory) {
+        contextFactories.add(factory);
+        return this;
+    }
+
+    @NonNull
+    public Context install() {
+        // add fragment to activity
+        if (InternalLifecycleIntegration.find(activity) != null) {
+            throw new IllegalStateException("Flow is already installed in this Activity.");
+        }
+        Dispatcher dispatcher = this.dispatcher;
+        if (dispatcher == null) {
+            dispatcher = KeyDispatcher.configure(activity, new DefaultKeyChanger(activity)) //
+                    .build();
+        }
+        final Object defState = defaultKey == null ? "Hello, World!" : defaultKey;
+
+        final History defaultHistory = History.single(defState);
+        final Application app = (Application) baseContext.getApplicationContext();
+        final KeyManager keyManager = new KeyManager(contextFactories);
+        InternalLifecycleIntegration.install(app, activity, parceler, defaultHistory, dispatcher,
+                keyManager);
+        return new InternalContextWrapper(baseContext, activity);
+    }
 }

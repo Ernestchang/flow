@@ -20,16 +20,20 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.View;
+
 import java.util.Map;
 
+/**
+ * exchange screens or views in activity
+ */
 public interface KeyChanger {
-  /**
-   * Transition from outgoing state to incoming state.  Implementations should call
-   * {@link State#restore(View)} on the incoming view, and (if outgoingState is not null)
-   * {@link State#save(View)} on the outgoing view.  And don't forget to declare your screen layouts
-   * with ids (only layouts with ids will have their state saved/restored)!
-   */
-  void changeKey(@Nullable State outgoingState, @NonNull State incomingState,
-      @NonNull Direction direction, @NonNull Map<Object, Context> incomingContexts,
-      @NonNull TraversalCallback callback);
+    /**
+     * Transition from outgoing state to incoming state.  Implementations should call
+     * {@link State#restore(View)} on the incoming view, and (if outgoingState is not null)
+     * {@link State#save(View)} on the outgoing view.  And don't forget to declare your screen layouts
+     * with ids (only layouts with ids will have their state saved/restored)!
+     */
+    void changeKey(@Nullable State outgoingState, @NonNull State incomingState,
+                   @NonNull Direction direction, @NonNull Map<Object, Context> incomingContexts,
+                   @NonNull TraversalCallback callback);
 }

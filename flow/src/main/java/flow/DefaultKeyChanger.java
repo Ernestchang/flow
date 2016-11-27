@@ -24,6 +24,9 @@ import android.view.Gravity;
 import android.widget.TextView;
 import java.util.Map;
 
+/**
+ * default keyChanger
+ */
 final class DefaultKeyChanger implements KeyChanger {
   private Activity activity;
   private TextView textView;
@@ -36,11 +39,15 @@ final class DefaultKeyChanger implements KeyChanger {
       @NonNull Direction direction, @NonNull Map<Object, Context> incomingContexts,
       @NonNull TraversalCallback callback) {
     if (textView == null) {
+      // incomingState.getKey()--> incomingContexts.get()-->context
       textView = new TextView(incomingContexts.get(incomingState.getKey()));
       textView.setGravity(Gravity.CENTER);
+      // activity.setContentView()-->change view
       activity.setContentView(textView);
     }
+    // incomingState.getKey().toString()-->what? to show
     textView.setText(incomingState.getKey().toString());
+    // callback.onTraversalCompleted()--> called here once
     callback.onTraversalCompleted();
   }
 }

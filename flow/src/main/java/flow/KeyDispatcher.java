@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,67 +34,68 @@ import static flow.Preconditions.checkNotNull;
  */
 public final class KeyDispatcher implements Dispatcher {
 
-  public static final class Builder {
+    public static final class Builder {
+        private final Activity activity;
+        private final KeyChanger keyChanger;
+
+        private Builder(Activity activity, KeyChanger keyChanger) {
+            this.activity = activity;
+            this.keyChanger = checkNotNull(keyChanger, "KeyChanger may not be null");
+        }
+
+        public Dispatcher build() {
+            final KeyChanger keyChanger =
+                    this.keyChanger == null ? new DefaultKeyChanger(activity) : this.keyChanger;
+            return new KeyDispatcher(activity, keyChanger);
+        }
+    }
+
+    public static Builder configure(Activity activity, KeyChanger changer) {
+        return new Builder(activity, changer);
+    }
+
     private final Activity activity;
     private final KeyChanger keyChanger;
 
-    private Builder(Activity activity, KeyChanger keyChanger) {
-      this.activity = activity;
-      this.keyChanger = checkNotNull(keyChanger, "KeyChanger may not be null");
+    private KeyDispatcher(Activity activity, KeyChanger keyChanger) {
+        this.activity = activity;
+        this.keyChanger = keyChanger;
     }
 
-    public Dispatcher build() {
-      final KeyChanger keyChanger =
-          this.keyChanger == null ? new DefaultKeyChanger(activity) : this.keyChanger;
-      return new KeyDispatcher(activity, keyChanger);
+    @Override
+    public void dispatch(@NonNull Traversal traversal, @NonNull TraversalCallback callback) {
+        State inState = traversal.getState(traversal.destination.top());
+        Object inKey = inState.getKey();
+        State outState = traversal.origin == null ? null : traversal.getState(traversal.origin.top());
+        Object outKey = outState == null ? null : outState.getKey();
+
+        // TODO(#126): short-circuit may belong in Flow, since every Dispatcher we have implements it.
+        if (inKey.equals(outKey)) {
+            callback.onTraversalCompleted();
+            return;
+        }
+
+        Map<Object, Context> contexts;
+        if (inKey instanceof MultiKey) {
+            final List<Object> keys = ((MultiKey) inKey).getKeys();
+            final int count = keys.size();
+            contexts = new LinkedHashMap<>(count);
+            for (int i = 0; i < count; i++) {
+                final Object key = keys.get(i);
+                contexts.put(key, traversal.createContext(key, activity));
+            }
+            Context context = traversal.createContext(inKey, activity);
+            contexts.put(inKey, context);
+            contexts = Collections.unmodifiableMap(contexts);
+        } else {
+            contexts = Collections.singletonMap(inKey, traversal.createContext(inKey, activity));
+        }
+        changeKey(outState, inState, traversal.direction, contexts, callback);
     }
-  }
 
-  public static Builder configure(Activity activity, KeyChanger changer) {
-    return new Builder(activity, changer);
-  }
-
-  private final Activity activity;
-  private final KeyChanger keyChanger;
-
-  private KeyDispatcher(Activity activity, KeyChanger keyChanger) {
-    this.activity = activity;
-    this.keyChanger = keyChanger;
-  }
-
-  @Override public void dispatch(@NonNull Traversal traversal, @NonNull TraversalCallback callback) {
-    State inState = traversal.getState(traversal.destination.top());
-    Object inKey = inState.getKey();
-    State outState = traversal.origin == null ? null : traversal.getState(traversal.origin.top());
-    Object outKey = outState == null ? null : outState.getKey();
-
-    // TODO(#126): short-circuit may belong in Flow, since every Dispatcher we have implements it.
-    if (inKey.equals(outKey)) {
-      callback.onTraversalCompleted();
-      return;
+    public void changeKey(@Nullable State outgoingState, State incomingState,
+                          Direction direction, Map<Object, Context> incomingContexts,
+                          final TraversalCallback callback) {
+        keyChanger.changeKey(outgoingState, incomingState, direction, incomingContexts, callback);
     }
-
-    Map<Object, Context> contexts;
-    if (inKey instanceof MultiKey) {
-      final List<Object> keys = ((MultiKey) inKey).getKeys();
-      final int count = keys.size();
-      contexts = new LinkedHashMap<>(count);
-      for (int i = 0; i < count; i++) {
-        final Object key = keys.get(i);
-        contexts.put(key, traversal.createContext(key, activity));
-      }
-      Context context = traversal.createContext(inKey, activity);
-      contexts.put(inKey, context);
-      contexts = Collections.unmodifiableMap(contexts);
-    } else {
-      contexts = Collections.singletonMap(inKey, traversal.createContext(inKey, activity));
-    }
-    changeKey(outState, inState, traversal.direction, contexts, callback);
-  }
-
-  public void changeKey(@Nullable State outgoingState, State incomingState,
-      Direction direction, Map<Object, Context> incomingContexts,
-      final TraversalCallback callback) {
-    keyChanger.changeKey(outgoingState, incomingState, direction, incomingContexts, callback);
-  }
 }

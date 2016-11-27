@@ -18,6 +18,10 @@ package flow;
 
 import android.support.annotation.NonNull;
 
+/**
+ * dispatch the transition between views
+ * real action to change views
+ */
 public interface Dispatcher {
   /**
    * Called when the history is about to change.  Note that Flow does not consider the

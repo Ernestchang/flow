@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 /**
  * Used by History to convert your key objects to and from instances of
  * {@link android.os.Parcelable}.
+ *
+ *  exchanger to adapter key and parcelable object
  */
 public interface KeyParceler {
   @NonNull Parcelable toParcelable(@NonNull Object key);

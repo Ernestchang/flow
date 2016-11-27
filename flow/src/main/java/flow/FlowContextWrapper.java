@@ -20,9 +20,13 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.view.LayoutInflater;
 
+/**
+ * wrapper context to enhance
+ */
 final class FlowContextWrapper extends ContextWrapper {
   static final String SYSTEM_SERVICE = "flow_services_context_wrapper";
 
+  // get itself
   static FlowContextWrapper get(Context context) {
     @SuppressWarnings("WrongConstant") FlowContextWrapper wrapper =
         (FlowContextWrapper) context.getSystemService(SYSTEM_SERVICE);
@@ -38,10 +42,16 @@ final class FlowContextWrapper extends ContextWrapper {
     this.services = services;
   }
 
+  /**
+   * enhance to get self
+   * @param name
+     * @return
+     */
   @Override public Object getSystemService(String name) {
     if (SYSTEM_SERVICE.equals(name)) {
       return this;
     }
+    //return a new layoutInflater associated with a new context
     if (LAYOUT_INFLATER_SERVICE.equals(name)) {
       if (inflater == null) {
         inflater = LayoutInflater.from(getBaseContext()).cloneInContext(this);
